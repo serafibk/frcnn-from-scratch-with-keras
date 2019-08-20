@@ -192,7 +192,7 @@ def classifier_layers(x, input_shape, trainable=False, alpha=1):
     # seem to require timedistributed layers.. whats that???
     # it may be for 5-dim inputs.
     
-    x = _conv_block_td(inputs=x, filters=512, input_shape=input_shape, strides=(1, 1), trainable=trainable)
+    # x = _conv_block_td(inputs=x, filters=512, input_shape=input_shape, strides=(1, 1), trainable=trainable)
     
     #x = _inverted_res_block(x, filters=160, alpha=alpha, stride=1,
     #                        expansion=6, block_id=17)

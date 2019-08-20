@@ -47,6 +47,7 @@ parser.add_option("--num_epochs", type="int", dest="num_epochs", help="Number of
 parser.add_option("--config_filename", dest="config_filename", help=
 				"Location to store all the metadata related to the training (to be used when testing).",
 				default="config.pickle")
+parser.add_option("--elen", dest="epoch_length", help="set the epoch length. def=1000", type="int", default=1000)
 parser.add_option("--output_weight_path", dest="output_weight_path", help="Output path for weights.", default='./model_frcnn.hdf5')
 parser.add_option("--input_weight_path", dest="input_weight_path", help="Input path for weights. If not specified, will try to load default weights provided by keras.")
 
@@ -228,12 +229,12 @@ callback=[Callbacks]
 if len(val_imgs) == 0:
     # assuming you don't have validation data
     history = model_rpn.fit_generator(data_gen_train,
-                    epochs=options.num_epochs,steps_per_epoch=1000,callbacks=callback)
+                    epochs=options.num_epochs, steps_per_epoch = options.epoch_length, callbacks=callback)
     loss_history = history.history["loss"]
 else:
     history = model_rpn.fit_generator(data_gen_train,
                     epochs=options.num_epochs, validation_data=data_gen_val,
-                    steps_per_epoch=1000,callbacks=callback, validation_steps=100)
+                    steps_per_epoch=options.epoch_length, callbacks=callback, validation_steps=100)
     loss_history = history.history["val_loss"]
 
 import numpy
