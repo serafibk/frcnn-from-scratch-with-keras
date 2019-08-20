@@ -130,6 +130,8 @@ C.num_rois = int(options.num_rois)
 
 if C.network == 'resnet50':
 	num_features = 1024
+elif C.network =="mobilenetv2":
+	num_features = 320
 else:
 	# may need to fix this up with your backbone..!
 	print("backbone is not resnet50. number of features chosen is 512")
