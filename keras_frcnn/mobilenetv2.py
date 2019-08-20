@@ -202,9 +202,9 @@ def classifier_layers(x, input_shape, trainable=False, alpha=1):
     """
     use v1's depthwise conv
     """
-    x = _depthwise_conv_block_td(x, 512, alpha=1, depth_multiplier=1, block_id=12)
-    x = _depthwise_conv_block_td(x, 1024, alpha=1, depth_multiplier=1, block_id=13)
-    x = _depthwise_conv_block_td(x, 1024, alpha=1, depth_multiplier=1, block_id=14)
+    x = _depthwise_conv_block_td(x, 512, alpha=1, depth_multiplier=1, block_id=17)
+    x = _depthwise_conv_block_td(x, 1024, alpha=1, depth_multiplier=1, block_id=18)
+    x = _depthwise_conv_block_td(x, 1024, alpha=1, depth_multiplier=1, block_id=19)
     x = TimeDistributed(layers.AveragePooling2D((7, 7)), name='avg_pool')(x)
 
     return x
