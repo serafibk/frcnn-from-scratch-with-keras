@@ -92,6 +92,9 @@ Epoch 4/20
 # sample command
 python train_frcnn.py --network vgg -o simple -p /path/to/your/dataset/
 
+# using the rpn trained in step.3 will make the training more stable.
+python train_frcnn.py --network vgg -o simple -p /path/to/your/dataset/ --rpn models/rpn/rpn.vgg.weights.36-1.42.hdf5
+
 # sample command to train PASCAL_VOC dataset:
 python train_frcnn.py -p ../VOCdevkit/ --lr 1e-4 --opt SGD --network vgg --elen 1000 --num_epoch 100 --hf 
 # this may take about 12 hours with GPU..
