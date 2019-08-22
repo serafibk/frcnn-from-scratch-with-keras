@@ -73,7 +73,7 @@ You can see if the loss converges.. etc
 Other network options are: resnet50, mobilenetv1, vgg19.
 
 ```
-python train_rpn.py --network vgg16 -o simple -p /path/to/your/dataset/
+python train_rpn.py --network vgg -o simple -p /path/to/your/dataset/
 
 Epoch 1/20
 100/100 [==============================] - 57s 574ms/step - loss: 5.2831 - rpn_out_class_loss: 4.8526 - rpn_out_regress_loss: 0.4305 - val_loss: 4.2840 - val_rpn_out_class_loss: 3.8344 - val_rpn_out_regress_loss: 0.4496
@@ -90,7 +90,7 @@ Epoch 4/20
 
 ```
 # sample command
-python train_frcnn.py --network vgg16 -o simple -p /path/to/your/dataset/
+python train_frcnn.py --network vgg -o simple -p /path/to/your/dataset/
 
 # sample command to train PASCAL_VOC dataset:
 python train_frcnn.py -p ../VOCdevkit/ --lr 1e-4 --opt SGD --network vgg --elen 1000 --num_epoch 100 --hf 
