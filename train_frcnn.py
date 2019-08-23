@@ -183,7 +183,8 @@ if options.load is not None:
 elif options.rpn_weight_path is not None:
     print("loading RPN weights from ", options.rpn_weight_path)
     model_rpn.load_weights(options.rpn_weight_path, by_name=True)
-    optimizer = SGD(lr=1e-4, decay=0.0005, momentum=0.9)
+    optimizer = SGD(lr=1e-5, decay=0.0005, momentum=0.9)
+    optimizer_classifier = SGD(lr=1e-4, decay=0.0005, momentum=0.9)
 
 else:
     print("no previous model was loaded")
