@@ -199,7 +199,7 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 
 	img = cv2.imread(filepath)
 
-        # preprocess image
+    # preprocess image
 	X, ratio = format_img(img, C)
 	img_scaled = (np.transpose(X[0,:,:,:],(1,2,0)) + 127.5).astype('uint8')
 	if K.image_dim_ordering() == 'tf':
