@@ -15,6 +15,9 @@ PR and issues will help too!
 
 Thanks :)
 
+## Frameworks
+Tested with Tensorflow==1.12.0 and Keras 2.2.4.
+
 ## Compared to the forked keras-frcnn..
 1. mobilenetv1 and mobilenetv2 supported. Can also try Mobilenetv1_05,Mobilenetv1_25 for smaller nets on the Edge.
 2. VGG19 support added.
