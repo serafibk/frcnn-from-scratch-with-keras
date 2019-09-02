@@ -217,11 +217,10 @@ for epoch_num in range(num_epochs):
 	progbar = generic_utils.Progbar(epoch_length)
 	print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
 	
-	# first 5 epoch is warmup
-	if epoch_num == 5:
-		optimizer = SGD(lr=options.lr, decay=0.0005, momentum=0.9)
-		optimizer_classifier = SGD(lr=options.lr, decay=0.0005, momentum=0.9)
-
+	# first 3 epoch is warmup
+	if epoch_num == 3:
+		K.set_value(model_rpn.optimizer.lr, options.lr)
+		K.set_value(model_classifier.optimizer.lr, options.lr)
 	
 	while True:
 		try:
@@ -237,7 +236,7 @@ for epoch_num in range(num_epochs):
 
 			P_rpn = model_rpn.predict_on_batch(X)
 
-			R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_dim_ordering(), use_regr=True, overlap_thresh=0.3, max_boxes=300)
+			R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_dim_ordering(), use_regr=True, overlap_thresh=0.4, max_boxes=300)
 			# note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
 			X2, Y1, Y2, IouS = roi_helpers.calc_iou(R, img_data, C, class_mapping)
 

@@ -184,7 +184,7 @@ all_imgs = []
 
 classes = {}
 
-bbox_threshold = 0.8
+bbox_threshold = 0.5
 
 visualise = True
 
@@ -208,7 +208,7 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 	[Y1, Y2, F] = model_rpn.predict(X)
 	
 
-	R = roi_helpers.rpn_to_roi(Y1, Y2, C, K.image_dim_ordering(), overlap_thresh=0.5)
+	R = roi_helpers.rpn_to_roi(Y1, Y2, C, K.image_dim_ordering(), overlap_thresh=0.3)
 
 	# convert from (x1,y1,x2,y2) to (x,y,w,h)
 	R[:, 2] -= R[:, 0]

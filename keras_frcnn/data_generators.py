@@ -230,7 +230,7 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
 
 	# one issue is that the RPN has many more negative than positive regions, so we turn off some of the negative
 	# regions. We also limit it to 256 regions.
-	num_regions = 256
+	num_regions = 32
 
 	if len(pos_locs[0]) > num_regions/2:
 		val_locs = random.sample(range(len(pos_locs[0])), len(pos_locs[0]) - num_regions/2)
