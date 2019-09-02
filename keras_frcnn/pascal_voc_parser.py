@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 
 
-def get_data(input_path):
+def get_data(input_path, cat=None):
 	all_imgs = []
 
 	classes_count = {}
@@ -22,8 +22,10 @@ def get_data(input_path):
 
 		annot_path = os.path.join(data_path, 'Annotations')
 		imgs_path = os.path.join(data_path, 'JPEGImages')
-		imgsets_path_trainval = os.path.join(data_path, 'ImageSets','Main','trainval.txt')
-		imgsets_path_test = os.path.join(data_path, 'ImageSets','Main','test.txt')
+
+		# load all train images or only one category.
+		imgsets_path_trainval = os.path.join(data_path, 'ImageSets','Main','train.txt')
+		imgsets_path_test = os.path.join(data_path, 'ImageSets','Main','val.txt')
 
 		trainval_files = []
 		test_files = []
@@ -88,7 +90,11 @@ def get_data(input_path):
 					difficulty = 1 # parse all files.
 					annotation_data['bboxes'].append(
 						{'class': class_name, 'x1': x1, 'x2': x2, 'y1': y1, 'y2': y2, 'difficult': difficulty})
-				all_imgs.append(annotation_data)
+				
+				if cat and class_name == cat:
+                                    all_imgs.append(annotation_data)
+				elif not cat:
+                                    all_imgs.append(annotation_data) 
 
 				if visualise:
 					img = cv2.imread(annotation_data['filepath'])
