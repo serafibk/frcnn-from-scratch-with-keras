@@ -31,8 +31,8 @@ parser = OptionParser()
 parser.add_option("-p", "--path", dest="train_path", help="Path to training data.")
 parser.add_option("-o", "--parser", dest="parser", help="Parser to use. One of simple or pascal_voc",
 				default="pascal_voc")
-parser.add_option("-n", "--num_rois", type="int", dest="num_rois", help="Number of RoIs to process at once.", default=64)
-parser.add_option("--network", dest="network", help="Base network to use. Supports vgg or resnet50.", default='resnet50')
+parser.add_option("-n", "--num_rois", type="int", dest="num_rois", help="Number of RoIs to process at once.", default=300)
+parser.add_option("--network", dest="network", help="Base network to use. Supports vgg or resnet50.", default='vgg')
 parser.add_option("--hf", dest="horizontal_flips", help="Augment with horizontal flips in training. (Default=true).", action="store_false", default=True)
 parser.add_option("--vf", dest="vertical_flips", help="Augment with vertical flips in training. (Default=false).", action="store_true", default=False)
 parser.add_option("--rot", "--rot_90", dest="rot_90", help="Augment with 90 degree rotations in training. (Default=false).",
@@ -172,7 +172,7 @@ except:
 
 # optimizer setup
 if options.optimizers == "SGD":
-    optimizer = SGD(lr=options.lr/10, decay=0.0005, momentum=0.9)
+    optimizer = SGD(lr=options.lr/100, decay=0.0005, momentum=0.9)
     optimizer_classifier = SGD(lr=options.lr/10, decay=0.0005, momentum=0.9)
 else:
     optimizer = Adam(lr=options.lr, clipnorm=0.001)
@@ -186,9 +186,6 @@ if options.load is not None:
 elif options.rpn_weight_path is not None:
     print("loading RPN weights from ", options.rpn_weight_path)
     model_rpn.load_weights(options.rpn_weight_path, by_name=True)
-    optimizer = SGD(lr=1e-5, decay=0.0005, momentum=0.9)
-    optimizer_classifier = SGD(lr=1e-4, decay=0.0005, momentum=0.9)
-
 else:
     print("no previous model was loaded")
 
@@ -218,9 +215,9 @@ for epoch_num in range(num_epochs):
 	print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
 	
 	# first 3 epoch is warmup
-	if epoch_num == 3:
-		K.set_value(model_rpn.optimizer.lr, options.lr)
-		K.set_value(model_classifier.optimizer.lr, options.lr)
+	#if epoch_num == 3:
+	#	K.set_value(model_rpn.optimizer.lr, options.lr/100)
+	#	K.set_value(model_classifier.optimizer.lr, options.lr)
 	
 	while True:
 		try:
@@ -292,7 +289,8 @@ for epoch_num in range(num_epochs):
 			iter_num += 1
 
 			progbar.update(iter_num, [('rpn_cls', np.mean(losses[:iter_num, 0])), ('rpn_regr', np.mean(losses[:iter_num, 1])),
-									  ('detector_cls', np.mean(losses[:iter_num, 2])), ('detector_regr', np.mean(losses[:iter_num, 3]))])
+									  ('detector_cls', np.mean(losses[:iter_num, 2])), ('detector_regr', np.mean(losses[:iter_num, 3])),
+                                     ("len of pos", len(selected_pos_samples))])
 
 			if iter_num == epoch_length:
 				loss_rpn_cls = np.mean(losses[:, 0])
