@@ -31,7 +31,7 @@ parser = OptionParser()
 parser.add_option("-p", "--path", dest="train_path", help="Path to training data.")
 parser.add_option("-o", "--parser", dest="parser", help="Parser to use. One of simple or pascal_voc",
 				default="pascal_voc")
-parser.add_option("-n", "--num_rois", type="int", dest="num_rois", help="Number of RoIs to process at once.", default=300)
+parser.add_option("-n", "--num_rois", type="int", dest="num_rois", help="Number of RoIs to process at once.", default=10)
 parser.add_option("--network", dest="network", help="Base network to use. Supports vgg or resnet50.", default='vgg')
 parser.add_option("--hf", dest="horizontal_flips", help="Augment with horizontal flips in training. (Default=true).", action="store_false", default=True)
 parser.add_option("--vf", dest="vertical_flips", help="Augment with vertical flips in training. (Default=false).", action="store_true", default=False)
@@ -172,8 +172,12 @@ except:
 
 # optimizer setup
 if options.optimizers == "SGD":
-    optimizer = SGD(lr=options.lr/100, decay=0.0005, momentum=0.9)
-    optimizer_classifier = SGD(lr=options.lr/10, decay=0.0005, momentum=0.9)
+    if options.rpn_weight_path is not None:
+        optimizer = SGD(lr=options.lr/100, decay=0.0005, momentum=0.9)
+        optimizer_classifier = SGD(lr=options.lr/5, decay=0.0005, momentum=0.9)
+    else:
+        optimizer = SGD(lr=options.lr/10, decay=0.0005, momentum=0.9)
+        optimizer_classifier = SGD(lr=options.lr/10, decay=0.0005, momentum=0.9)
 else:
     optimizer = Adam(lr=options.lr, clipnorm=0.001)
     optimizer_classifier = Adam(lr=options.lr, clipnorm=0.001)
@@ -215,9 +219,9 @@ for epoch_num in range(num_epochs):
 	print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
 	
 	# first 3 epoch is warmup
-	#if epoch_num == 3:
-	#	K.set_value(model_rpn.optimizer.lr, options.lr/100)
-	#	K.set_value(model_classifier.optimizer.lr, options.lr)
+	if epoch_num == 3 and options.rpn_weight_path is not None:
+		K.set_value(model_rpn.optimizer.lr, options.lr/30)
+		K.set_value(model_classifier.optimizer.lr, options.lr/3)
 	
 	while True:
 		try:
@@ -232,7 +236,6 @@ for epoch_num in range(num_epochs):
 			loss_rpn = model_rpn.train_on_batch(X, Y)
 
 			P_rpn = model_rpn.predict_on_batch(X)
-
 			R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_dim_ordering(), use_regr=True, overlap_thresh=0.4, max_boxes=300)
 			# note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
 			X2, Y1, Y2, IouS = roi_helpers.calc_iou(R, img_data, C, class_mapping)
