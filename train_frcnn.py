@@ -31,9 +31,9 @@ parser = OptionParser()
 parser.add_option("-p", "--path", dest="train_path", help="Path to training data.")
 parser.add_option("-o", "--parser", dest="parser", help="Parser to use. One of simple or pascal_voc",
 				default="pascal_voc")
-parser.add_option("-n", "--num_rois", type="int", dest="num_rois", help="Number of RoIs to process at once.", default=64)
-parser.add_option("--network", dest="network", help="Base network to use. Supports vgg or resnet50.", default='resnet50')
-parser.add_option("--hf", dest="horizontal_flips", help="Augment with horizontal flips in training. (Default=false).", action="store_true", default=False)
+parser.add_option("-n", "--num_rois", type="int", dest="num_rois", help="Number of RoIs to process at once.", default=300)
+parser.add_option("--network", dest="network", help="Base network to use. Supports vgg or resnet50.", default='vgg')
+parser.add_option("--hf", dest="horizontal_flips", help="Augment with horizontal flips in training. (Default=true).", action="store_false", default=True)
 parser.add_option("--vf", dest="vertical_flips", help="Augment with vertical flips in training. (Default=false).", action="store_true", default=False)
 parser.add_option("--rot", "--rot_90", dest="rot_90", help="Augment with 90 degree rotations in training. (Default=false).",
 				  action="store_true", default=False)
@@ -48,6 +48,9 @@ parser.add_option("--opt", dest="optimizers", help="set the optimizer to use", d
 parser.add_option("--elen", dest="epoch_length", help="set the epoch length. def=1000", default=1000)
 parser.add_option("--load", dest="load", help="What model to load", default=None)
 parser.add_option("--dataset", dest="dataset", help="name of the dataset", default="voc")
+parser.add_option("--cat", dest="cat", help="categroy to train on. default train on all cats.", default=None)
+parser.add_option("--lr", dest="lr", help="learn rate", type=float, default=1e-3)
+
 (options, args) = parser.parse_args()
 
 if not options.train_path:   # if filename is not given
@@ -101,7 +104,7 @@ else:
     # set the path to weights based on backend and model
     C.base_net_weights = nn.get_weight_path()
 
-all_imgs, classes_count, class_mapping = get_data(options.train_path)
+all_imgs, classes_count, class_mapping = get_data(options.train_path, options.cat)
 
 if 'bg' not in classes_count:
     classes_count['bg'] = 0
@@ -169,11 +172,11 @@ except:
 
 # optimizer setup
 if options.optimizers == "SGD":
-    optimizer = SGD(lr=1e-3, decay=0.0005, momentum=0.9)
-    optimizer_classifier = SGD(lr=1e-3, decay=0.0005, momentum=0.9)
+    optimizer = SGD(lr=options.lr/100, decay=0.0005, momentum=0.9)
+    optimizer_classifier = SGD(lr=options.lr/10, decay=0.0005, momentum=0.9)
 else:
-    optimizer = Adam(lr=1e-5, clipnorm=0.001)
-    optimizer_classifier = Adam(lr=1e-5, clipnorm=0.001)
+    optimizer = Adam(lr=options.lr, clipnorm=0.001)
+    optimizer_classifier = Adam(lr=options.lr, clipnorm=0.001)
 
 # may use this to resume from rpn models or previous training. specify either rpn or frcnn model to load
 if options.load is not None:
@@ -183,9 +186,6 @@ if options.load is not None:
 elif options.rpn_weight_path is not None:
     print("loading RPN weights from ", options.rpn_weight_path)
     model_rpn.load_weights(options.rpn_weight_path, by_name=True)
-    optimizer = SGD(lr=1e-5, decay=0.0005, momentum=0.9)
-    optimizer_classifier = SGD(lr=1e-4, decay=0.0005, momentum=0.9)
-
 else:
     print("no previous model was loaded")
 
@@ -213,6 +213,12 @@ vis = True
 for epoch_num in range(num_epochs):
 	progbar = generic_utils.Progbar(epoch_length)
 	print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
+	
+	# first 3 epoch is warmup
+	#if epoch_num == 3:
+	#	K.set_value(model_rpn.optimizer.lr, options.lr/100)
+	#	K.set_value(model_classifier.optimizer.lr, options.lr)
+	
 	while True:
 		try:
 			if len(rpn_accuracy_rpn_monitor) == epoch_length and C.verbose:
@@ -227,7 +233,7 @@ for epoch_num in range(num_epochs):
 
 			P_rpn = model_rpn.predict_on_batch(X)
 
-			R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_dim_ordering(), use_regr=True, overlap_thresh=0.3, max_boxes=300)
+			R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_dim_ordering(), use_regr=True, overlap_thresh=0.4, max_boxes=300)
 			# note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
 			X2, Y1, Y2, IouS = roi_helpers.calc_iou(R, img_data, C, class_mapping)
 
@@ -283,7 +289,8 @@ for epoch_num in range(num_epochs):
 			iter_num += 1
 
 			progbar.update(iter_num, [('rpn_cls', np.mean(losses[:iter_num, 0])), ('rpn_regr', np.mean(losses[:iter_num, 1])),
-									  ('detector_cls', np.mean(losses[:iter_num, 2])), ('detector_regr', np.mean(losses[:iter_num, 3]))])
+									  ('detector_cls', np.mean(losses[:iter_num, 2])), ('detector_regr', np.mean(losses[:iter_num, 3])),
+                                     ("len of pos", len(selected_pos_samples))])
 
 			if iter_num == epoch_length:
 				loss_rpn_cls = np.mean(losses[:, 0])
