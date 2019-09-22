@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-def get_data(input_path):
+def get_data(input_path, cat = None):
 	found_bg = False
 	all_imgs = {}
 
