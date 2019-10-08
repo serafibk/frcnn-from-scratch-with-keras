@@ -14,8 +14,23 @@ from __future__ import print_function
 
 import os
 
+"""
+couple of functions for frcnn..
+"""
 def get_weight_path():
     return os.path.join("pretrain", 'densenet121_weights_tf_dim_ordering_tf_kernels_notop.h5')
+
+def get_img_output_length(width, height):
+    def get_output_length(input_length):
+        # zero_pad
+        input_length += 6
+        # apply 4 strided convolutions
+        filter_sizes = [7, 3, 1, 1]
+        stride = 2
+        for filter_size in filter_sizes:
+            input_length = (input_length - filter_size + stride) // stride
+        return input_length
+    return get_output_length(width), get_output_length(height) 
 
 BASE_WEIGTHS_PATH = (
     'https://github.com/keras-team/keras-applications/'
