@@ -184,7 +184,7 @@ def nn_base(input_tensor=None,
     if K.image_dim_ordering() == 'th':
         input_shape = (3, None, None)
     else:
-        input_shape = (None, None, 3)
+        input_shape = (600, 600, 3)
 
     if input_tensor is None:
         img_input = Input(shape=input_shape)
@@ -199,7 +199,7 @@ def nn_base(input_tensor=None,
     else:
         bn_axis = 1
 
-    x = layers.ZeroPadding2D(padding=((3, 3), (3, 3)))(img_input)
+    x = ZeroPadding2D((3, 3))(img_input)
     x = layers.Conv2D(64, 7, strides=2, use_bias=False, name='conv1/conv')(x)
     x = layers.BatchNormalization(
         axis=bn_axis, epsilon=1.001e-5, name='conv1/bn')(x)
@@ -222,17 +222,18 @@ def nn_base(input_tensor=None,
     return x
 
 
+
 def classifier_layers(x, input_shape, trainable=False):
 
     # compile times on theano tend to be very high, so we use smaller ROI pooling regions to workaround
     # (hence a smaller stride in the region that follows the ROI pool)
     if K.backend() == 'tensorflow':
-        x = conv_block_td(x, 3, [512, 512, 2048], stage=5, block='a', input_shape=input_shape, strides=(2, 2), trainable=trainable)
+        x = conv_block_td(x, 3, [512, 512, 4096], stage=5, block='a', input_shape=input_shape, strides=(2, 2), trainable=trainable)
     elif K.backend() == 'theano':
-        x = conv_block_td(x, 3, [512, 512, 2048], stage=5, block='a', input_shape=input_shape, strides=(1, 1), trainable=trainable)
+        x = conv_block_td(x, 3, [512, 512, 4096], stage=5, block='a', input_shape=input_shape, strides=(1, 1), trainable=trainable)
 
-    x = identity_block_td(x, 3, [512, 512, 2048], stage=5, block='b', trainable=trainable)
-    x = identity_block_td(x, 3, [512, 512, 2048], stage=5, block='c', trainable=trainable)
+    x = identity_block_td(x, 3, [512, 512, 4096], stage=5, block='b', trainable=trainable)
+    x = identity_block_td(x, 3, [512, 512, 4096], stage=5, block='c', trainable=trainable)
     x = TimeDistributed(AveragePooling2D((7, 7)), name='avg_pool')(x)
 
     return x
@@ -253,17 +254,22 @@ def classifier(base_layers, input_rois, num_rois, nb_classes = 21, trainable=Fal
 
     if K.backend() == 'tensorflow':
         pooling_regions = 14
-        input_shape = (num_rois,14,14,1024)
+        input_shape = (num_rois,14,14,4096) # densenet output channels are 4096..
     elif K.backend() == 'theano':
         pooling_regions = 7
-        input_shape = (num_rois,1024,7,7)
+        input_shape = (num_rois,4096,7,7)
 
+    # from vgg version..
     out_roi_pool = RoiPoolingConv(pooling_regions, num_rois)([base_layers, input_rois])
-    out = classifier_layers(out_roi_pool, input_shape=input_shape, trainable=True)
 
-    out = TimeDistributed(Flatten())(out)
+    out = TimeDistributed(Flatten(name='flatten'))(out_roi_pool)
+    out = TimeDistributed(Dense(4096, activation='relu', name='fc1'))(out)
+    out = TimeDistributed(Dropout(0.5))(out)
+    out = TimeDistributed(Dense(4096, activation='relu', name='fc2'))(out)
+    out = TimeDistributed(Dropout(0.5))(out)
 
     out_class = TimeDistributed(Dense(nb_classes, activation='softmax', kernel_initializer='zero'), name='dense_class_{}'.format(nb_classes))(out)
     # note: no regression target for bg class
     out_regr = TimeDistributed(Dense(4 * (nb_classes-1), activation='linear', kernel_initializer='zero'), name='dense_regress_{}'.format(nb_classes))(out)
+
     return [out_class, out_regr]
