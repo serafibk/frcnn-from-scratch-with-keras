@@ -89,7 +89,7 @@ def transition_block(x, reduction, name):
     x = layers.Conv2D(int(K.int_shape(x)[bn_axis] * reduction), 1,
                       use_bias=False,
                       name=name + '_conv')(x)
-    x = layers.AveragePooling2D(2, strides=2, name=name + '_pool')(x)
+    x = layers.AveragePooling2D(2, strides=2, name=name + '_pool', padding='same')(x)
     return x
 
 
@@ -184,7 +184,7 @@ def nn_base(input_tensor=None,
     if K.image_dim_ordering() == 'th':
         input_shape = (3, None, None)
     else:
-        input_shape = (600, 600, 3)
+        input_shape = (None, None, 3)
 
     if input_tensor is None:
         img_input = Input(shape=input_shape)
@@ -204,7 +204,7 @@ def nn_base(input_tensor=None,
     x = layers.BatchNormalization(
         axis=bn_axis, epsilon=1.001e-5, name='conv1/bn')(x)
     x = layers.Activation('relu', name='conv1/relu')(x)
-    x = layers.ZeroPadding2D(padding=((1, 1), (1, 1)))(x)
+#    x = layers.ZeroPadding2D(padding=((1, 1), (1, 1)))(x)
     x = layers.MaxPooling2D(3, strides=2, name='pool1')(x)
 
     x = dense_block(x, blocks[0], name='conv2')
@@ -212,8 +212,10 @@ def nn_base(input_tensor=None,
     x = dense_block(x, blocks[1], name='conv3')
     x = transition_block(x, 0.5, name='pool3')
     x = dense_block(x, blocks[2], name='conv4')
-    x = transition_block(x, 0.5, name='pool4')
-    x = dense_block(x, blocks[3], name='conv5')
+    # here, the output size is similar to resnet50. stop here.
+
+    # x = transition_block(x, 0.5, name='pool4')
+    # x = dense_block(x, blocks[3], name='conv5')
 
     x = layers.BatchNormalization(
         axis=bn_axis, epsilon=1.001e-5, name='bn')(x)
@@ -221,29 +223,11 @@ def nn_base(input_tensor=None,
     
     return x
 
-
-
-def classifier_layers(x, input_shape, trainable=False):
-
-    # compile times on theano tend to be very high, so we use smaller ROI pooling regions to workaround
-    # (hence a smaller stride in the region that follows the ROI pool)
-    if K.backend() == 'tensorflow':
-        x = conv_block_td(x, 3, [512, 512, 4096], stage=5, block='a', input_shape=input_shape, strides=(2, 2), trainable=trainable)
-    elif K.backend() == 'theano':
-        x = conv_block_td(x, 3, [512, 512, 4096], stage=5, block='a', input_shape=input_shape, strides=(1, 1), trainable=trainable)
-
-    x = identity_block_td(x, 3, [512, 512, 4096], stage=5, block='b', trainable=trainable)
-    x = identity_block_td(x, 3, [512, 512, 4096], stage=5, block='c', trainable=trainable)
-    x = TimeDistributed(AveragePooling2D((7, 7)), name='avg_pool')(x)
-
-    return x
-
-
 def rpn(base_layers,num_anchors):
 
     x = Convolution2D(512, (3, 3), padding='same', activation='relu', kernel_initializer='normal', name='rpn_conv1')(base_layers)
 
-    x_class = Convolution2D(num_anchors, (1, 1), activation='sigmoid', kernel_initializer='uniform', name='rpn_out_class')(x)
+    x_class = Convolution2D(num_anchors, (1, 1), padding="same", activation='sigmoid', kernel_initializer='uniform', name='rpn_out_class')(x)
     x_regr = Convolution2D(num_anchors * 4, (1, 1), activation='linear', kernel_initializer='zero', name='rpn_out_regress')(x)
 
     return [x_class, x_regr, base_layers]
@@ -254,7 +238,7 @@ def classifier(base_layers, input_rois, num_rois, nb_classes = 21, trainable=Fal
 
     if K.backend() == 'tensorflow':
         pooling_regions = 14
-        input_shape = (num_rois,14,14,4096) # densenet output channels are 4096..
+        input_shape = (num_rois,14,14,1024) # densenet output channels are 1024..
     elif K.backend() == 'theano':
         pooling_regions = 7
         input_shape = (num_rois,4096,7,7)

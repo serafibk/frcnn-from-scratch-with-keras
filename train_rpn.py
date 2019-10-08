@@ -122,7 +122,7 @@ else:
 
 
 # place weight files on your directory
-ase_net_weights = nn.get_weight_path()
+base_net_weights = nn.get_weight_path()
 
 
 #### load images here ####
