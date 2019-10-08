@@ -13,6 +13,9 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+from keras import backend as K
+from keras.layers import Input, Add, Dense, Activation, Flatten, Convolution2D, MaxPooling2D, ZeroPadding2D, \
+    AveragePooling2D, TimeDistributed, BatchNormalization
 
 """
 couple of functions for frcnn..
@@ -53,11 +56,6 @@ DENSENET201_WEIGHT_PATH = (
 DENSENET201_WEIGHT_PATH_NO_TOP = (
     BASE_WEIGTHS_PATH +
     'densenet201_weights_tf_dim_ordering_tf_kernels_notop.h5')
-
-backend = None
-layers = None
-models = None
-keras_utils = None
 
 
 def dense_block(x, blocks, name):
@@ -170,9 +168,6 @@ def nn_base(blocks,
         ValueError: in case of invalid argument for `weights`,
             or invalid input shape.
     """
-
-    global backend, layers, models, keras_utils
-    backend, layers, models, keras_utils = get_submodules_from_kwargs(kwargs)
 
     if not (weights in {'imagenet', None} or os.path.exists(weights)):
         raise ValueError('The `weights` argument should be either '
