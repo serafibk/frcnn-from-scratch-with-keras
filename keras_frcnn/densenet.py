@@ -159,7 +159,7 @@ def nn_base(blocks,
             or invalid input shape.
     """
 
-   global backend, layers, models, keras_utils
+    global backend, layers, models, keras_utils
     backend, layers, models, keras_utils = get_submodules_from_kwargs(kwargs)
 
     if not (weights in {'imagenet', None} or os.path.exists(weights)):
