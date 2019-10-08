@@ -15,8 +15,9 @@ from __future__ import print_function
 import os
 from keras import backend as K
 from keras.layers import Input, Add, Dense, Activation, Flatten, Convolution2D, MaxPooling2D, ZeroPadding2D, \
-    AveragePooling2D, TimeDistributed, BatchNormalization
+    AveragePooling2D, TimeDistributed, BatchNormalization, Dropout
 from keras import layers
+from keras_frcnn.RoiPoolingConv import RoiPoolingConv
 
 """
 couple of functions for frcnn..
