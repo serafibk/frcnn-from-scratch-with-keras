@@ -238,6 +238,8 @@ def classifier(base_layers, input_rois, num_rois, nb_classes = 21, trainable=Fal
 
     out_roi_pool = RoiPoolingConv(pooling_regions, num_rois)([base_layers, input_rois])
 
+    # pool inputs to save memory.
+    out_roi_pool = TimeDistributed(AveragePooling2D((7, 7)), name='avg_pool')(out_roi_pool)
     out = TimeDistributed(Flatten(name='flatten'))(out_roi_pool)
     out = TimeDistributed(Dense(4096, activation='relu', name='fc1'))(out)
     out = TimeDistributed(Dropout(0.5))(out)
