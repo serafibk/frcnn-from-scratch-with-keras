@@ -105,6 +105,9 @@ elif options.network == 'mobilenetv1_25':
 elif options.network == 'mobilenetv2':
 	from keras_frcnn import mobilenetv2 as nn
 	C.network = 'mobilenetv2'
+elif options.network == 'densenet':
+	from keras_frcnn import densenet as nn
+	C.network = 'densenet'
 else:
 	print('Not a valid model')
 	raise ValueError
@@ -119,7 +122,7 @@ else:
 
 
 # place weight files on your directory
-ase_net_weights = nn.get_weight_path()
+base_net_weights = nn.get_weight_path()
 
 
 #### load images here ####
@@ -192,6 +195,7 @@ except:
 # compile model
 optimizer = Adam(lr=1e-5, clipnorm=0.001)
 model_rpn.compile(optimizer=optimizer, loss=[losses.rpn_loss_cls(num_anchors), losses.rpn_loss_regr(num_anchors)])
+model_rpn.summary()
 
 # write training misc here
 epoch_length = 100
