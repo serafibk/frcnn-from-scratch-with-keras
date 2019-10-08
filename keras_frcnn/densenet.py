@@ -14,6 +14,9 @@ from __future__ import print_function
 
 import os
 
+def get_weight_path():
+    return os.path.join("pretrain", 'densenet121_weights_tf_dim_ordering_tf_kernels_notop.h5')
+
 BASE_WEIGTHS_PATH = (
     'https://github.com/keras-team/keras-applications/'
     'releases/download/densenet/')
