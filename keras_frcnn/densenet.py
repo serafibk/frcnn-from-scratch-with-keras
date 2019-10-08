@@ -120,7 +120,8 @@ def conv_block(x, growth_rate, name):
     x = layers.Concatenate(axis=bn_axis, name=name + '_concat')([x, x1])
     return x
 
-def nn_base(blocks=[6, 12, 24, 16],
+def nn_base(input_tensor=None,
+             blocks=[6, 12, 24, 16],
              include_top=False,
              weights='imagenet',
              input_tensor=None,
