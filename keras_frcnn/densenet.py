@@ -16,7 +16,7 @@ import os
 from keras import backend as K
 from keras.layers import Input, Add, Dense, Activation, Flatten, Convolution2D, MaxPooling2D, ZeroPadding2D, \
     AveragePooling2D, TimeDistributed, BatchNormalization
-import keras.layers
+from keras import layers
 
 """
 couple of functions for frcnn..
