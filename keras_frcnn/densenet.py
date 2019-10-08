@@ -180,22 +180,23 @@ def nn_base(blocks,
                          ' as true, `classes` should be 1000')
 
     # Determine proper input shape
-    input_shape = _obtain_input_shape(input_shape,
-                                      default_size=224,
-                                      min_size=32,
-                                      data_format=backend.image_data_format(),
-                                      require_flatten=include_top,
-                                      weights=weights)
+    if K.image_dim_ordering() == 'th':
+        input_shape = (3, None, None)
+    else:
+        input_shape = (None, None, 3)
 
     if input_tensor is None:
-        img_input = layers.Input(shape=input_shape)
+        img_input = Input(shape=input_shape)
     else:
-        if not backend.is_keras_tensor(input_tensor):
-            img_input = layers.Input(tensor=input_tensor, shape=input_shape)
+        if not K.is_keras_tensor(input_tensor):
+            img_input = Input(tensor=input_tensor, shape=input_shape)
         else:
             img_input = input_tensor
 
-    bn_axis = 3 if backend.image_data_format() == 'channels_last' else 1
+    if K.image_dim_ordering() == 'tf':
+        bn_axis = 3
+    else:
+        bn_axis = 1
 
     x = layers.ZeroPadding2D(padding=((3, 3), (3, 3)))(img_input)
     x = layers.Conv2D(64, 7, strides=2, use_bias=False, name='conv1/conv')(x)
