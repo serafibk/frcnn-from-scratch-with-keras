@@ -105,6 +105,9 @@ elif options.network == 'mobilenetv1_25':
 elif options.network == 'mobilenetv2':
 	from keras_frcnn import mobilenetv2 as nn
 	C.network = 'mobilenetv2'
+elif options.network == 'densenet':
+	from keras_frcnn import densenet as nn
+	C.network = 'densenet'
 else:
 	print('Not a valid model')
 	raise ValueError
