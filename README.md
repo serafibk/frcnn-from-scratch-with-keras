@@ -151,7 +151,7 @@ python test_frcnn.py --network vgg16 -p /path/to/your/test-dataset/ --load path-
 ```
 
 ## Bad training results?
-See issue #6 and look for help..
+See [issue #6](https://github.com/kentaroy47/frcnn-from-scratch-with-keras/issues/6) and look for help..
 
 # Dataset setup.
 You can either try voc or simple parsers for your dataset.
