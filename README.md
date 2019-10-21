@@ -195,7 +195,7 @@ https://github.com/tzutalin/labelImg
 download dataset and extract.
 
 ```
-wget http://pjreddie.com/media/files/VOCtrainval_06-Nov-2007.tar
+wget http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar
 tar -xf VOCtrainval_06-Nov-2007.tar
 ```
 
