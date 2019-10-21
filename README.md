@@ -26,7 +26,12 @@ Tested with Tensorflow==1.12.0 and Keras 2.2.4.
 
 ### trained model
 vgg16
+
 https://drive.google.com/file/d/1IgxPP0aI5pxyPHVSM2ZJjN1p9dtE4_64/view?usp=sharing
+
+config.pickle:
+
+https://drive.google.com/open?id=1BL_2ZgTf55vH2q1jvVz0hkhlWYgj-coa
 
 # Running scripts..
 
