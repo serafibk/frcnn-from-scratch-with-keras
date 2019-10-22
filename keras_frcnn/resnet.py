@@ -8,7 +8,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 from keras.layers import Input, Add, Dense, Activation, Flatten, Convolution2D, MaxPooling2D, ZeroPadding2D, \
-    AveragePooling2D, TimeDistributed, BatchNormalization
+    AveragePooling2D, TimeDistributed, BatchNormalization, Dropout
 
 from keras import backend as K
 import os 
@@ -236,16 +236,19 @@ def classifier(base_layers, input_rois, num_rois, nb_classes = 21, trainable=Fal
         pooling_regions = 7
         input_shape = (num_rois,1024,7,7)
 
-    out_roi_pool = RoiPoolingConv(pooling_regions, num_rois)([base_layers, input_rois])
+    x = RoiPoolingConv(pooling_regions, num_rois)([base_layers, input_rois])
 
     # pool inputs to save memory.
-    out_roi_pool = TimeDistributed(AveragePooling2D((7, 7)), name='avg_pool')(out_roi_pool)
-    out = TimeDistributed(Flatten(name='flatten'))(out_roi_pool)
+    #x = TimeDistributed(Convolution2D(1024, (3, 3), name='lastconv', padding="same"))(out_roi_pool)
+    #x = Activation('relu')(x)
+
+    x = TimeDistributed(AveragePooling2D((7, 7)), name='avg_pool')(x)
+    out = TimeDistributed(Flatten(name='flatten'))(x)
     out = TimeDistributed(Dense(4096, activation='relu', name='fc1'))(out)
     out = TimeDistributed(Dropout(0.5))(out)
     out = TimeDistributed(Dense(4096, activation='relu', name='fc2'))(out)
     out = TimeDistributed(Dropout(0.5))(out)
-
+ 
     out_class = TimeDistributed(Dense(nb_classes, activation='softmax', kernel_initializer='zero'), name='dense_class_{}'.format(nb_classes))(out)
     # note: no regression target for bg class
     out_regr = TimeDistributed(Dense(4 * (nb_classes-1), activation='linear', kernel_initializer='zero'), name='dense_regress_{}'.format(nb_classes))(out)
