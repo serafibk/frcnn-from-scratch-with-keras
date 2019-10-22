@@ -212,9 +212,9 @@ def voc_eval(detpath,
         print('Reading annotation for {:d}/{:d}'.format(
           i + 1, len(imagenames)))
     # save
-    print('Saving cached annotations to {:s}'.format(cachefile))
-    with open(cachefile, 'wb') as f:
-      pickle.dump(recs, f)
+    #print('Saving cached annotations to {:s}'.format(cachefile))
+    #with open(cachefile, 'wb') as f:
+    #  pickle.dump(recs, f)
   else:
     # load
     with open(cachefile, 'rb') as f:
@@ -259,7 +259,12 @@ def voc_eval(detpath,
 
     # go down dets and mark TPs and FPs
     for d in range(nd):
-      R = class_recs[image_ids[d]]
+      id = image_ids[d][-10:-4]
+      try:
+          R = class_recs[id]
+      except:
+        print("det not found")
+        continue
       bb = BB[d, :].astype(float)
       ovmax = -np.inf
       BBGT = R['bbox'].astype(float)
