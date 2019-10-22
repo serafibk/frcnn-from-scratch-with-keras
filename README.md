@@ -10,6 +10,8 @@
 
 - **VGG support!**
 
+- added eval for pascal_voc :)
+
 Stars and forks are appreciated if this repo helps your project, will motivate me to support this repo. 
 
 PR and issues will help too!
