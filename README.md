@@ -150,14 +150,9 @@ Average number of overlapping bounding boxes from RPN = 1.74 for 100 previous it
 ## 5. test your models
 For evaluation and getting mAP, please take a look at `eval.ipynb`
 
-```
-python test_frcnn.py --network vgg16 -p /path/to/your/test-dataset/ --load path-to-your-trained-model --write
-# specify your trained model path.
-# enabling write will write out images with detections.
-```
 
 ## Bad training results?
-See [issue #6](https://github.com/kentaroy47/frcnn-from-scratch-with-keras/issues/6) and look for help..
+See [issue #6](https://github.com/kentaroy47/frcnn-from-scratch-with-keras/issues/6) and look for help.
 
 # Dataset setup.
 You can either try voc or simple parsers for your dataset.
