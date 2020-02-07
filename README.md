@@ -26,6 +26,12 @@ Tested with Tensorflow==1.12.0 and Keras 2.2.4.
 2. VGG19 support added.
 3. RPN can be trained seperately.
 
+## Pytorch object detectors
+https://github.com/kentaroy47/ObjectDetection.Pytorch
+
+Here are my object detection models in Pytorch.
+The model is SSD and trains quite fast.
+
 ### trained model
 vgg16
 
