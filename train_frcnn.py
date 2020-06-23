@@ -222,7 +222,7 @@ for epoch_num in range(num_epochs):
 	print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
 	
 	# first 3 epoch is warmup
-	if epoch_num == 3 and options.rpn_weight_path is not None:
+	if epoch_num < 3 and options.rpn_weight_path is not None:
 		K.set_value(model_rpn.optimizer.lr, options.lr/30)
 		K.set_value(model_classifier.optimizer.lr, options.lr/3)
 	
