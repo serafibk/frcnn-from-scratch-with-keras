@@ -182,7 +182,8 @@ filepath,x1,y1,x2,y2,class_name
 ```
 For example:
 ```dataset.txt
-/data/imgs/img_001.jpg,837,346,981,456,cow /data/imgs/img_002.jpg,215,312,279,391,cat
+/data/imgs/img_001.jpg,837,346,981,456,cow 
+/data/imgs/img_002.jpg,215,312,279,391,cat
 ```
 
 ## Labeling tools.
