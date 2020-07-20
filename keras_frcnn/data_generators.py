@@ -81,19 +81,19 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
 	downscale = float(C.rpn_stride)
 	anchor_sizes = C.anchor_box_scales
 	anchor_ratios = C.anchor_box_ratios
-	num_anchors = len(anchor_sizes) * len(anchor_ratios)	
+	num_anchors = len(anchor_sizes) * len(anchor_ratios)
 
 	# calculate the output map size based on the network architecture
 
 	(output_width, output_height) = img_length_calc_function(resized_width, resized_height)
 
 	n_anchratios = len(anchor_ratios)
-	
+
 	# initialise empty output objectives
 	y_rpn_overlap = np.zeros((output_height, output_width, num_anchors)).astype(int)
 	y_is_box_valid = np.zeros((output_height, output_width, num_anchors)).astype(int)
 	y_rpn_regr = np.zeros((output_height, output_width, num_anchors * 4))
-    
+
 
 	num_bboxes = len(img_data['bboxes'])
 
@@ -111,23 +111,23 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
 		gta[bbox_num, 1] = bbox['x2'] * (resized_width / float(width))
 		gta[bbox_num, 2] = bbox['y1'] * (resized_height / float(height))
 		gta[bbox_num, 3] = bbox['y2'] * (resized_height / float(height))
-	
+
 	# rpn ground truth
 
 	for anchor_size_idx in range(len(anchor_sizes)):
 		for anchor_ratio_idx in range(n_anchratios):
 			anchor_x = anchor_sizes[anchor_size_idx] * anchor_ratios[anchor_ratio_idx][0]
-			anchor_y = anchor_sizes[anchor_size_idx] * anchor_ratios[anchor_ratio_idx][1]	
-			
-			for ix in range(output_width):					
-				# x-coordinates of the current anchor box	
+			anchor_y = anchor_sizes[anchor_size_idx] * anchor_ratios[anchor_ratio_idx][1]
+
+			for ix in range(output_width):
+				# x-coordinates of the current anchor box
 				x1_anc = downscale * (ix + 0.5) - anchor_x / 2
-				x2_anc = downscale * (ix + 0.5) + anchor_x / 2	
-				
-				# ignore boxes that go across image boundaries					
+				x2_anc = downscale * (ix + 0.5) + anchor_x / 2
+
+				# ignore boxes that go across image boundaries
 				if x1_anc < 0 or x2_anc > resized_width:
 					continue
-					
+
 				for jy in range(output_height):
 
 					# y-coordinates of the current anchor box
@@ -138,7 +138,7 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
 					if y1_anc < 0 or y2_anc > resized_height:
 						continue
 
-					# bbox_type indicates whether an anchor should be a target 
+					# bbox_type indicates whether an anchor should be a target
 					bbox_type = 'neg'
 
 					# this is the best IOU for the (x,y) coord and the current anchor
@@ -146,7 +146,7 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
 					best_iou_for_loc = 0.0
 
 					for bbox_num in range(num_bboxes):
-						
+
 						# get IOU of the current GT box and the current anchor box
 						curr_iou = iou([gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]], [x1_anc, y1_anc, x2_anc, y2_anc])
 						# calculate the regression targets if they will be needed
@@ -159,9 +159,9 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
 							tx = (cx - cxa) / (x2_anc - x1_anc)
 							ty = (cy - cya) / (y2_anc - y1_anc)
 							#calculate log of tw and th later
-							tw = 1.0*(gta[bbox_num, 1] - gta[bbox_num, 0]) / (x2_anc - x1_anc) 
-							th = 1.0*(gta[bbox_num, 3] - gta[bbox_num, 2]) / (y2_anc - y1_anc) 
-						
+							tw = 1.0*(gta[bbox_num, 1] - gta[bbox_num, 0]) / (x2_anc - x1_anc)
+							th = 1.0*(gta[bbox_num, 3] - gta[bbox_num, 2]) / (y2_anc - y1_anc)
+
 						if img_data['bboxes'][bbox_num]['class'] != 'bg':
 
 							# all GT boxes should be mapped to an anchor box, so we keep track of which anchor box was best
@@ -265,9 +265,9 @@ class threadsafe_iter:
 
 	def next(self):
 		with self.lock:
-			return next(self.it)		
+			return next(self.it)
 
-	
+
 def threadsafe_generator(f):
 	"""A decorator that takes a generator function and makes it thread-safe.
 	"""
@@ -330,7 +330,7 @@ def get_anchor_gt(all_img_data, class_count, C, img_length_calc_function, backen
 
 				y_rpn_regr[:, y_rpn_regr.shape[1]//2:, :, :] *= C.std_scaling
 
-				if backend == 'tf':
+				if backend == 'channels_last':
 					x_img = np.transpose(x_img, (0, 2, 3, 1))
 					y_rpn_cls = np.transpose(y_rpn_cls, (0, 2, 3, 1))
 					y_rpn_regr = np.transpose(y_rpn_regr, (0, 2, 3, 1))

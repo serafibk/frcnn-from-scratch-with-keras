@@ -9,9 +9,10 @@ import time
 from keras_frcnn import config
 from keras import backend as K
 from keras.layers import Input
-from keras.models import Model
+from keras.models import Model,load_model
 from keras_frcnn import roi_helpers
 from keras.applications.mobilenet import preprocess_input
+import math,random
 
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
@@ -79,11 +80,144 @@ C.rot_90 = False
 
 img_path = options.test_path
 
+
+def get_proposed_regions(region):
+    minX = region[0]
+    minY = region[1]
+    maxX = region[2]
+    maxY = region[3]
+
+    proposed_list = [region]
+    scale = 2
+    proposed_list.append([minX,minY,int(maxX/scale),int(maxY/scale)])
+    proposed_list.append([minX,minY,int(maxX*scale),int(maxY*scale)])
+    proposed_list.append([int(minX/scale),int(minY/scale),maxX,maxY])
+    proposed_list.append([int(minX*scale),int(minY*scale),maxX,maxY])
+    proposed_list.append([int(minX*scale),minY,int(maxX*scale),maxY])
+    proposed_list.append([int(minX/scale),minY,int(maxX/scale),maxY])
+    proposed_list.append([minX,int(minY*scale),maxX,int(maxY*scale)])
+    proposed_list.append([minX,int(minY/scale),maxX,int(maxY/scale)])
+    proposed_list.append([minX+(scale*10),minY+(scale*10),maxX-(scale*10),maxY-(scale*10)])
+
+    for i,prop in enumerate(proposed_list): #fix going out of bounds
+        if prop[2] > maxX:
+            proposed_list[i][2] = maxX
+        if prop[3] > maxY:
+            proposed_list[i][3] = maxY
+
+    return proposed_list
+
+def get_roi_coords(model1,model2,image):
+	X_size = 800 #part1
+	Y_size = 64 #part1
+
+	pTwo_size = 600 #part2
+	cuts_labels = 60 #part2
+	label_precision = 8
+
+	y_fail_num = 2
+
+	image_label = []
+	input_roi=[]
+	num_roi = 10 #fixed number of rois
+
+	pixel_data = cv2.imread(image, 0)
+	original_pixel_data_255 = pixel_data.copy()
+	pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+	original_pixel_data = pixel_data.copy()
+
+	height, width = pixel_data.shape
+	scale = X_size/width
+
+	pixel_data = cv2.resize(pixel_data, (X_size, int(height*scale))) #X, then Y
+	bordered_pixel_data = cv2.copyMakeBorder(pixel_data,top=int(Y_size/4),bottom=int(Y_size/4),left=0,right=0,borderType=cv2.BORDER_CONSTANT,value=1)
+
+	slice_skip_size = int(Y_size/2)
+	iter = 0
+	slices = []
+	while((iter*slice_skip_size + Y_size) < int(height*scale+Y_size/2)):
+		s_iter = iter*slice_skip_size
+		slices.append(bordered_pixel_data[int(s_iter):int(s_iter+Y_size)])
+		iter += 1
+
+	slices = np.array(np.expand_dims(slices,  axis = -1))
+
+	data = model1.predict(slices)
+
+	conc_data = []
+	for single_array in data:
+		for single_data in single_array:
+			conc_data.append(single_data)
+	conc_data += [0 for i in range(y_fail_num+1)] #Still needed
+	groups = []
+	fail = y_fail_num
+	group_start = 1 #start at 1 to prevent numbers below zero in groups
+	for iter in range(len(conc_data)-1):
+		if(conc_data[iter] < .5):
+			fail += 1
+		else:
+			fail = 0
+
+		if(fail >= y_fail_num):
+			if(iter - group_start >= 4):
+				groups.append((int((group_start-1)*label_precision/scale), int((iter+1-y_fail_num)*label_precision/scale)))
+			group_start = iter
+
+
+
+	groups2 = []
+	for group in groups:
+		temp_final_original = cv2.resize(original_pixel_data[group[0]:group[1]], (pTwo_size, pTwo_size))
+		temp_final = np.expand_dims(np.expand_dims(temp_final_original,  axis = 0), axis = -1)
+		data_final = model2.predict(temp_final)
+
+		hor_start = -1
+		hor_finish = 10000
+		pointless, original_width = original_pixel_data.shape
+
+		for iter in range(len(data_final[0])):
+			if(data_final[0][iter] > .5 and hor_start == -1):
+				if(iter > 0):
+					hor_start = int((iter-0.5)*original_width/cuts_labels)
+				else:
+					hor_start = int(iter*original_width/cuts_labels)
+
+			if(data_final[0][iter] > .5):
+				hor_finish = int((iter+0.5)*original_width/cuts_labels)
+
+		if(0 and hor_finish - hor_start > (0.7 * original_width)): #Fix for tables that cover the entire image
+			groups2.append((0, original_width))
+		else:
+			groups2.append((hor_start, hor_finish))
+
+	data_shared = 0
+	all_roi_coords=[]
+	start_ind = len(image_label)
+    #add generated coordinates
+	for iter in range(len(groups)):
+		final_split = original_pixel_data_255[groups[iter][0]:groups[iter][1], groups2[iter][0]:groups2[iter][1]]
+		all_roi_coords.append([groups2[iter][0],groups[iter][0],groups2[iter][1],groups[iter][1]])
+		if(0):
+			cv2.imshow('image', final_split)
+			cv2.waitKey(0)
+			cv2.destroyAllWindows()
+			cv2.imshow('image', original_pixel_data_255[xml_locs[0][2]:xml_locs[0][3], xml_locs[0][0]:xml_locs[0][1]])
+			cv2.waitKey(0)
+			cv2.destroyAllWindows()
+    #for each location in all roi coords, propose 10 scaled regions around location
+	'''
+	proposed_regions=[]
+	for region in all_roi_coords:
+		copy_image = original_pixel_data
+		proposed_regions.append(get_proposed_regions(region))
+	'''
+	return all_roi_coords
+
 def format_img_size(img, C):
 	""" formats the image size based on config """
 	img_min_side = float(C.im_size)
 	(height,width,_) = img.shape
-		
+
 	if width <= height:
 		ratio = img_min_side/width
 		new_height = int(ratio * height)
@@ -93,7 +227,7 @@ def format_img_size(img, C):
 		new_width = int(ratio * width)
 		new_height = int(img_min_side)
 	img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
-	return img, ratio	
+	return img, ratio
 
 def format_img_channels(img, C):
 	""" formats the image channels based on config """
@@ -116,7 +250,6 @@ def format_img(img, C):
 
 # Method to transform the coordinates of the bounding box to its original size
 def get_real_coordinates(ratio, x1, y1, x2, y2):
-
 	real_x1 = int(round(x1 // ratio))
 	real_y1 = int(round(y1 // ratio))
 	real_x2 = int(round(x2 // ratio))
@@ -143,7 +276,7 @@ else:
 	print("backbone is not resnet50. number of features chosen is 512")
 	num_features = 512
 
-if K.image_dim_ordering() == 'th':
+if K.image_data_format() == 'channels_first':
 	input_shape_img = (3, None, None)
 	input_shape_features = (num_features, None, None)
 else:
@@ -166,6 +299,8 @@ classifier = nn.classifier(feature_map_input, roi_input, C.num_rois, nb_classes=
 
 model_rpn = Model(img_input, rpn_layers)
 model_classifier = Model([feature_map_input, roi_input], classifier)
+model1 = load_model("/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/cnn_models/stage1.h5")
+model2 = load_model("/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/cnn_models/stage2.h5")
 
 # model loading
 if options.load == None:
@@ -202,15 +337,16 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
     # preprocess image
 	X, ratio = format_img(img, C)
 	img_scaled = (np.transpose(X[0,:,:,:],(1,2,0)) + 127.5).astype('uint8')
-	if K.image_dim_ordering() == 'tf':
+	if K.image_data_format() == 'channels_last':
 		X = np.transpose(X, (0, 2, 3, 1))
 	# get the feature maps and output from the RPN
 	[Y1, Y2, F] = model_rpn.predict(X)
-	
+	print(np.shape(F))
 
-	R = roi_helpers.rpn_to_roi(Y1, Y2, C, K.image_dim_ordering(), overlap_thresh=0.3)
+
+	R = roi_helpers.rpn_to_roi(Y1, Y2, C, K.image_data_format(), overlap_thresh=0.3)
 	print(R.shape)
-    
+
 	# convert from (x1,y1,x2,y2) to (x,y,w,h)
 	R[:, 2] -= R[:, 0]
 	R[:, 3] -= R[:, 1]
@@ -231,8 +367,54 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 			ROIs_padded[:,:curr_shape[1],:] = ROIs
 			ROIs_padded[0,curr_shape[1]:,:] = ROIs[0,0,:]
 			ROIs = ROIs_padded
+		maxY = np.shape(img_scaled)[0]
+		maxX = np.shape(img_scaled)[1]
+		F_y = np.shape(F)[1]
+		F_x = np.shape(F)[2]
+		Y_ratio = maxY/F_y
+		X_ratio = maxX/F_x
+		print("Y ratio", maxY/F_y)
+		print("X ratio", maxX/F_x)
+		print("ratio", ratio)
+		rois = get_roi_coords(model1,model2,os.path.join(img_path,img_name))
+		all_areas=[]
+		for region in rois:
+			x1,y1,x2,y2 = get_real_coordinates(1/ratio,region[0],region[1],region[2],region[3])
+			#if x2>maxX:
+				#x2=maxX
+			#if y2>maxY:
+				#y2=maxY
+			x1 /= X_ratio
+			y1 /= Y_ratio
+			x2 -=x1
+			x2 /= X_ratio #width
+			y2 -= y1
+			y2 /= Y_ratio #height
+			all_areas.append([x1,y1,x2,y2])
+		print(all_areas)
+		print(np.shape(img_scaled))
+		im = np.ascontiguousarray(img_scaled)
+		for roi in ROIs[0]:
+			x1 = roi[0]*X_ratio
+			y1 = roi[1]*Y_ratio
+			x2 = x1+roi[2]*X_ratio
+			y2 = y1+roi[3]*Y_ratio
+			rand_255_r = math.floor(random.random()*255)
+			rand_255_g = math.floor(random.random()*255)
+			rand_255_b = math.floor(random.random()*255)
 
-		[P_cls,P_regr] = model_classifier.predict([F, ROIs])
+			cv2.rectangle(im,(int(x1),int(y1)),(int(x2),int(y2)),(rand_255_r, rand_255_g, rand_255_b), 2)
+
+		cv2.imshow("image",im)
+		cv2.waitKey(0)
+		cv2.destroyAllWindows()
+	
+
+
+		arr_areas = np.array(np.expand_dims(all_areas,axis=0))
+		print(arr_areas)
+		print(ROIs)
+		[P_cls,P_regr] = model_classifier.predict([F, arr_areas])
 		print(P_cls)
 
 		for ii in range(P_cls.shape[1]):
@@ -253,8 +435,8 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 	all_dets = []
 
 	for key in bboxes:
-		print(key)
-		print(len(bboxes[key]))
+		#print(key)
+		#print(len(bboxes[key]))
 		bbox = np.array(bboxes[key])
 
 		new_boxes, new_probs = roi_helpers.non_max_suppression_fast(bbox, np.array(probs[key]), overlap_thresh = 0.3)

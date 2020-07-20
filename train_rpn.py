@@ -25,9 +25,9 @@ from keras.utils import generic_utils
 if 'tensorflow' == K.backend():
     import tensorflow as tf
 from keras.backend.tensorflow_backend import set_session
-config2 = tf.ConfigProto()
+config2 = tf.compat.v1.ConfigProto()
 config2.gpu_options.allow_growth = True
-set_session(tf.Session(config=config2))
+tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config2))
 
 # command arg example
 #--network mobilenetv1 -o simple -p ../../datasets/small_kitti_obj/kitti_train.txt
@@ -131,10 +131,12 @@ all_imgs, classes_count, class_mapping = get_data(options.train_path)
 
 print(classes_count)
 
+'''
 # add background class as 21st class
 if 'bg' not in classes_count:
 	classes_count['bg'] = 0
 	class_mapping['bg'] = len(class_mapping)
+'''
 
 C.class_mapping = class_mapping
 
@@ -162,8 +164,8 @@ print('Num train samples {}'.format(len(train_imgs)))
 print('Num val samples {}'.format(len(val_imgs)))
 
 
-data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, nn.get_img_output_length, K.image_dim_ordering(), mode='train')
-data_gen_val = data_generators.get_anchor_gt(val_imgs, classes_count, C, nn.get_img_output_length,K.image_dim_ordering(), mode='val')
+data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, nn.get_img_output_length, K.image_data_format(), mode='train')
+data_gen_val = data_generators.get_anchor_gt(val_imgs, classes_count, C, nn.get_img_output_length,K.image_data_format(), mode='val')
 
 # set input shape
 input_shape_img = (None, None, 3)

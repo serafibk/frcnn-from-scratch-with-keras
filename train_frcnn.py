@@ -20,9 +20,9 @@ from keras.utils import generic_utils
 if 'tensorflow' == K.backend():
     import tensorflow as tf
 from keras.backend.tensorflow_backend import set_session
-config2 = tf.ConfigProto()
+config2 = tf.compat.v1.ConfigProto()
 config2.gpu_options.allow_growth = True
-set_session(tf.Session(config=config2))
+tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config2))
 
 sys.setrecursionlimit(40000)
 
@@ -138,10 +138,10 @@ print('Num train samples {}'.format(len(train_imgs)))
 print('Num val samples {}'.format(len(val_imgs)))
 
 
-data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, nn.get_img_output_length, K.image_dim_ordering(), mode='train')
-data_gen_val = data_generators.get_anchor_gt(val_imgs, classes_count, C, nn.get_img_output_length,K.image_dim_ordering(), mode='val')
+data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, nn.get_img_output_length, K.image_data_format(), mode='train')
+data_gen_val = data_generators.get_anchor_gt(val_imgs, classes_count, C, nn.get_img_output_length,K.image_data_format(), mode='val')
 
-if K.image_dim_ordering() == 'th':
+if K.image_data_format() == 'channels_first':
     input_shape_img = (3, None, None)
 else:
     input_shape_img = (None, None, 3)
@@ -220,12 +220,12 @@ vis = True
 for epoch_num in range(num_epochs):
 	progbar = generic_utils.Progbar(epoch_length)
 	print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
-	
+
 	# first 3 epoch is warmup
 	if epoch_num < 3 and options.rpn_weight_path is not None:
 		K.set_value(model_rpn.optimizer.lr, options.lr/30)
 		K.set_value(model_classifier.optimizer.lr, options.lr/3)
-	
+
 	while True:
 		try:
 			if len(rpn_accuracy_rpn_monitor) == epoch_length and C.verbose:
@@ -239,7 +239,7 @@ for epoch_num in range(num_epochs):
 			loss_rpn = model_rpn.train_on_batch(X, Y)
 
 			P_rpn = model_rpn.predict_on_batch(X)
-			R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_dim_ordering(), use_regr=True, overlap_thresh=0.4, max_boxes=300)
+			R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_data_format(), use_regr=True, overlap_thresh=0.4, max_boxes=300)
 			# note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
 			X2, Y1, Y2, IouS = roi_helpers.calc_iou(R, img_data, C, class_mapping)
 
@@ -260,7 +260,7 @@ for epoch_num in range(num_epochs):
 			    pos_samples = pos_samples[0]
 			else:
 			    pos_samples = []
-			
+
 			rpn_accuracy_rpn_monitor.append(len(pos_samples))
 			rpn_accuracy_for_epoch.append((len(pos_samples)))
 

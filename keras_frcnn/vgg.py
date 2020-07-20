@@ -20,7 +20,7 @@ from keras_frcnn.RoiPoolingConv import RoiPoolingConv
 
 
 def get_weight_path():
-    if K.image_dim_ordering() == 'th':
+    if K.image_data_format() == 'channels_first':
         print('pretrained weights not available for VGG with theano backend')
         return
     else:
@@ -31,13 +31,13 @@ def get_img_output_length(width, height):
     def get_output_length(input_length):
         return input_length//16
 
-    return get_output_length(width), get_output_length(height)    
+    return get_output_length(width), get_output_length(height)
 
 def nn_base(input_tensor=None, trainable=False):
 
 
     # Determine proper input shape
-    if K.image_dim_ordering() == 'th':
+    if K.image_data_format() == 'channels_first':
         input_shape = (3, None, None)
     else:
         input_shape = (None, None, 3)
@@ -50,7 +50,7 @@ def nn_base(input_tensor=None, trainable=False):
         else:
             img_input = input_tensor
 
-    if K.image_dim_ordering() == 'tf':
+    if K.image_data_format() == 'channels_last':
         bn_axis = 3
     else:
         bn_axis = 1
@@ -119,5 +119,3 @@ def classifier(base_layers, input_rois, num_rois, nb_classes = 21, trainable=Fal
     out_regr = TimeDistributed(Dense(4 * (nb_classes-1), activation='linear', kernel_initializer='zero'), name='dense_regress_{}'.format(nb_classes))(out)
 
     return [out_class, out_regr]
-
-
