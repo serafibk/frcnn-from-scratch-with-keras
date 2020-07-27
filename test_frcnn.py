@@ -337,11 +337,11 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
     # preprocess image
 	X, ratio = format_img(img, C)
 	img_scaled = (np.transpose(X[0,:,:,:],(1,2,0)) + 127.5).astype('uint8')
+
 	if K.image_data_format() == 'channels_last':
 		X = np.transpose(X, (0, 2, 3, 1))
 	# get the feature maps and output from the RPN
 	[Y1, Y2, F] = model_rpn.predict(X)
-	print(np.shape(F))
 
 
 	R = roi_helpers.rpn_to_roi(Y1, Y2, C, K.image_data_format(), overlap_thresh=0.3)
@@ -378,7 +378,23 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 		print("ratio", ratio)
 		rois = get_roi_coords(model1,model2,os.path.join(img_path,img_name))
 		all_areas=[]
+		img_scaled_prime = cv2.resize(img_scaled,(F_x,F_y))
+		im = np.ascontiguousarray(img_scaled_prime.copy())
+		img_2 = img.copy()
+		y_rat_im = 500/np.shape(im)[0]
+		x_rat_im = 400/np.shape(im)[1]
+		im = cv2.resize(im,(400,500))
+		img_2 = cv2.resize(img_2,(400,500))
+		y_rat = 500/np.shape(img)[0]
+		x_rat = 400/np.shape(img)[1]
 		for region in rois:
+			xmin = int(np.round(region[0]*x_rat))
+			ymin = int(np.round(region[1]*y_rat))
+			xmax = int(np.round(region[2]*x_rat))
+			ymax = int(np.round(region[3]*y_rat))
+			cv2.rectangle(img_2,(xmin,ymin),(xmax,ymax),(0,255,0),1)
+
+
 			x1,y1,x2,y2 = get_real_coordinates(1/ratio,region[0],region[1],region[2],region[3])
 			#if x2>maxX:
 				#x2=maxX
@@ -386,36 +402,83 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 				#y2=maxY
 			x1 /= X_ratio
 			y1 /= Y_ratio
-			x2 -=x1
+			#x2 -=x1
 			x2 /= X_ratio #width
-			y2 -= y1
+			#y2 -= y1
 			y2 /= Y_ratio #height
+
+			x1 = int(np.round(x1))
+			y1 = int(np.round(y1))
+			x2 = int(np.round(x2))
+			y2 = int(np.round(y2))
+
 			all_areas.append([x1,y1,x2,y2])
-		print(all_areas)
-		print(np.shape(img_scaled))
-		im = np.ascontiguousarray(img_scaled)
-		for roi in ROIs[0]:
-			x1 = roi[0]*X_ratio
-			y1 = roi[1]*Y_ratio
-			x2 = x1+roi[2]*X_ratio
-			y2 = y1+roi[3]*Y_ratio
+
 			rand_255_r = math.floor(random.random()*255)
 			rand_255_g = math.floor(random.random()*255)
 			rand_255_b = math.floor(random.random()*255)
 
-			cv2.rectangle(im,(int(x1),int(y1)),(int(x2),int(y2)),(rand_255_r, rand_255_g, rand_255_b), 2)
+			x1 = int(np.round(x1*x_rat_im))
+			y1 = int(np.round(y1*y_rat_im))
+			x2 = int(np.round(x2*x_rat_im))
+			y2 = int(np.round(y2*y_rat_im))
 
-		cv2.imshow("image",im)
+			#cv2.rectangle(im,(int(x1),int(y1)),(int(x2),int(y2)),(rand_255_r, rand_255_g, rand_255_b), 1)
+
+
+		for roi in ROIs[0]:
+			x1 = roi[0]
+			y1 = roi[1]
+			x2 = x1+roi[2]
+			y2 = y1+roi[3]
+			rand_255_r = math.floor(random.random()*255)
+			rand_255_g = math.floor(random.random()*255)
+			rand_255_b = math.floor(random.random()*255)
+
+			x1 = int(np.round(x1*x_rat_im))
+			y1 = int(np.round(y1*y_rat_im))
+			x2 = int(np.round(x2*x_rat_im))
+			y2 = int(np.round(y2*y_rat_im))
+
+			cv2.rectangle(im,(int(x1),int(y1)),(int(x2),int(y2)),(rand_255_r, rand_255_g, rand_255_b), 2)
+		while len(all_areas) < num_rois:
+			x1 = all_areas[-1][0]*0.5
+			y1 = all_areas[-1][1]*0.5
+			x2 = all_areas[-1][2]*0.5
+			y2 = all_areas[-1][3]*0.5
+
+			x1 = int(np.round(x1))
+			y1 = int(np.round(y1))
+			x2 = int(np.round(x2))
+			y2 = int(np.round(y2))
+
+			all_areas.append([x1,y1,x2,y2])
+
+			x1 = int(np.round(x1*x_rat_im))
+			y1 = int(np.round(y1*y_rat_im))
+			x2 = int(np.round(x2*x_rat_im))
+			y2 = int(np.round(y2*y_rat_im))
+
+			#cv2.rectangle(im,(int(x1),int(y1)),(int(x2),int(y2)),(rand_255_r, rand_255_g, rand_255_b), 1)
+
+
+
+
+		cv2.imshow("image",img_2)
+		cv2.waitKey(0)
+		cv2.imshow("image_2",im)
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
-	
 
 
+
+		assert(len(all_areas)==num_rois)
 		arr_areas = np.array(np.expand_dims(all_areas,axis=0))
 		print(arr_areas)
 		print(ROIs)
-		[P_cls,P_regr] = model_classifier.predict([F, arr_areas])
+		[P_cls,P_regr] = model_classifier.predict([F, ROIs])
 		print(P_cls)
+		break
 
 		for ii in range(P_cls.shape[1]):
 
